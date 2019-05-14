@@ -267,6 +267,14 @@ def showMFWCandidates(st):
             n += 1
     s.G.view()
 
+def edgeQ(st, sn, en):
+    flag = False
+    for i in range(len(st.trie[sn])):
+        if (st.alph[i] in st.trie[sn]) and (en == st.trie[sn][st.alph[i]]):
+            flag = True
+            break
+    return flag
+
 def buildADT(st):
     nt = copy.deepcopy(st)
     t = nt.trie
@@ -274,6 +282,19 @@ def buildADT(st):
     forks = nt.forks
     flagLeaf = False
     sym = st.alph
+
+#    print("pathForks: ", pathForks)
+    pathForks = [st.path(i) for i in forks]
+
+    # buile MFWs of type I
+    for i in range(len(pathForks)):
+        for j in range(st.aSize):
+            pathJ = [sym[j]]+pathForks[i]
+            if st.locusQ(pathJ):
+                nodeJ = st.locusL(pathJ)
+                nt.G.edge(str(forks[i]), str(nodeJ), color = 'green')
+                nt.nEdges += 1
+                createMFW(nt, forks[i], nodeJ)
 
     # build MFWs of type L
     leaves=list(filter(lambda i: len(st.trie[i]) == 0, range(len(st.trie))))
@@ -283,23 +304,11 @@ def buildADT(st):
     pathmin = pathmin[1:]
     node_p = st.locusL(pathmin)
 
-    nt.G.edge(str(node_p), str(node_I), color = 'green')
-    nt.nEdges += 1
-    createMFW(nt, node_p, node_I)
+    if (not edgeQ(nt, node_p, node_I)):
+        nt.G.edge(str(node_p), str(node_I), color = 'green')
+        nt.nEdges += 1
+        createMFW(nt, node_p, node_I)
 
-    # build MFWs of type I
-    pathForks = [st.path(i) for i in forks]
-
-#    print("pathForks: ", pathForks)
-
-    for i in range(len(pathForks)):
-        for j in range(st.aSize):
-            pathJ = [sym[j]]+pathForks[i]
-            if st.locusQ(pathJ):
-                nodeJ = st.locusL(pathJ)
-                nt.G.edge(str(forks[i]), str(nodeJ), color = 'green')
-                nt.nEdges += 1
-                createMFW(nt, forks[i], nodeJ)
     return nt
 
 def buildADT_FH(st):
