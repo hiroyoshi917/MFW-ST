@@ -1,4 +1,16 @@
 #
+# -----------------------------------------------------
+#  Project Name         : making list of MFWs for text using suffix trie.
+#  File Name            : MFW.py
+#  Creation Date        : 2019/05/15
+#
+#  Copy right 2019 Hiroyosh Morita. All rights reserved.
+#
+#  This source code or any protion thereof must not be
+#  reproduced or used in any manner whatsoever.
+#
+
+#
 # constructor of SuffixTrie
 # (2019/05/04)
 # (2019/05/13)
