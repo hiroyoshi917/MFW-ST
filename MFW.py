@@ -283,6 +283,20 @@ def buildADT(st):
     flagLeaf = False
     sym = st.alph
 
+    # build MFWs of type L
+    leaves=list(filter(lambda i: len(st.trie[i]) == 0, range(len(st.trie))))
+    argmin=np.argmin([len(st.path(k)) for k in leaves])
+    node_I = leaves[argmin]
+    nt.G.node(str(node_I), color="green")
+    pathmin = st.path(node_I)
+    pathmin = pathmin[1:]
+    node_p = st.locusL(pathmin)
+
+#    if (not edgeQ(nt, node_p, node_I)):
+    nt.G.edge(str(node_p), str(node_I), color = 'green')
+    nt.nEdges += 1
+    createMFW(nt, node_p, node_I)
+
 #    print("pathForks: ", pathForks)
     pathForks = [st.path(i) for i in forks]
 
@@ -292,22 +306,11 @@ def buildADT(st):
             pathJ = [sym[j]]+pathForks[i]
             if st.locusQ(pathJ):
                 nodeJ = st.locusL(pathJ)
-                nt.G.edge(str(forks[i]), str(nodeJ), color = 'green')
-                nt.nEdges += 1
-                createMFW(nt, forks[i], nodeJ)
+                if (not st.leafQ(nodeJ)):     # to avoid to connect a node of type L (190516)
+                    nt.G.edge(str(forks[i]), str(nodeJ), color = 'green')
+                    nt.nEdges += 1
+                    createMFW(nt, forks[i], nodeJ)
 
-    # build MFWs of type L
-    leaves=list(filter(lambda i: len(st.trie[i]) == 0, range(len(st.trie))))
-    argmin=np.argmin([len(st.path(k)) for k in leaves])
-    node_I = leaves[argmin]
-    pathmin = st.path(node_I)
-    pathmin = pathmin[1:]
-    node_p = st.locusL(pathmin)
-
-    if (not edgeQ(nt, node_p, node_I)):
-        nt.G.edge(str(node_p), str(node_I), color = 'green')
-        nt.nEdges += 1
-        createMFW(nt, node_p, node_I)
 
     return nt
 
@@ -327,6 +330,8 @@ def buildADT_FH(st):
             pathJ = [sym[j]]+pathForks[i]
             if st.locusQ(pathJ):
                 nodeJ = nt.locusL(pathJ)
+                if st.leafQ(nodeJ):         # check if nodeJ is a leaf.
+                    nt.G.node(str(nodeJ), color="green")
                 nt.G.edge(str(forks[i]), str(nodeJ), color = 'green')
                 nt.nEdges += 1
                 if len(nt.trie[nodeJ]) == 0:
@@ -334,10 +339,8 @@ def buildADT_FH(st):
 
     # build MFWs of type L
     if flagLeaf == True:
-#        print('skip to look for MFWs of type L')
         return nt
-#    else:
-#        print('continue to look for MFWs of type L')
+
     leaves=list(filter(lambda i: len(st.trie[i]) == 0, range(len(st.trie))))
     argmin=np.argmin([len(st.path(k)) for k in leaves])
     node_I = leaves[argmin]
@@ -393,3 +396,59 @@ def buildADT_SH(at, st):
                 createMFW(st, forks[i], nodeJ)
 #
     return st
+
+#
+#   added some more functions
+#
+
+#
+#   Project: Drawing SuffixTree
+#                by Hiroyoshi Morita (2019/05/15)
+#
+def forkQ(t, node):
+    return len(t[node]) > 1
+
+def leafQ(t, node):
+    return len(t[node]) == 0
+
+def nodeType(t, node):
+    x = len(t[node])
+    if x == 0:
+        return "LEAF"
+    elif x == 1:
+        return "LINE"
+    elif x > 1:
+        return "FORK"
+
+def scanTrie(t, sym, node):
+    elabel =""
+    nType = nodeType(t, node)
+    if nType == "LEAF":
+        elabel.append()
+    print('node: {0}  t[{0}]: {1} -- type: {2}'.format(node, t[node], nodeType(t,node)))
+    printNodeType(t, node)
+    for i in range(len(sym)):
+#        print("status of sym. '{0}': {1}".format(sym[i], sym[i] in t[node]))
+        if sym[i] in t[node]:
+            nxtnode = t[node][sym[i]]
+            scanTrie(t, sym, nxtnode)
+
+def change_Size_of_Single_Nodes(nt, sym, node):
+    if nodeType(nt.trie, node) == "LINE":
+        nt.G.node(str(node), str(''), **{'width':str(0.15), 'height':str(0.15)})
+    elif nodeType(nt.trie, node) == "LEAF":
+        nt.G.node(str(node), str(''), **{'width':str(0.3), 'height':str(0.3)})
+    else:
+        nt.G.node(str(node), str(''),  **{'width':str(0.3), 'height':str(0.3)})
+
+    for i in range(len(sym)):
+#        print("status of sym. '{0}': {1}".format(sym[i], sym[i] in t[node]))
+        if sym[i] in nt.trie[node]:
+            nxtnode = nt.trie[node][sym[i]]
+            change_Size_of_Single_Nodes(nt, sym, nxtnode)
+
+def drawSuffixTree(st, opt='TB'):
+    nt = copy.deepcopy(st)
+    nt.G.attr(rankdir=opt)
+    change_Size_of_Single_Nodes(nt, nt.alph, 0)
+    nt.view()
