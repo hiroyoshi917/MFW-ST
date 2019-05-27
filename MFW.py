@@ -10,10 +10,6 @@
 #  reproduced or used in any manner whatsoever.
 #
 
-
-
-
-
 #
 # constructor of SuffixTrie
 # (2019/05/04)
@@ -22,10 +18,12 @@
 # (2019/05/14)
 # at lecture06
 #
+# Version:
+#   2019/05/23    MFW190523.py
+#
 import numpy as np
 import copy
 from graphviz import Digraph
-
 
 class SuffixTrie(Digraph):
     """
@@ -45,6 +43,7 @@ class SuffixTrie(Digraph):
         self.aSize = len(self.alph)
         self.suffixes = self.sortedSuffixes()
         self.build(text)
+        self._MFW = []
 
     def node(self, str1, str2):
         self.G.node(str1, str2)
@@ -61,7 +60,8 @@ class SuffixTrie(Digraph):
         self.G.edge(str1, str2, label=optL, color=optC)
         self.nEdges += 1
 
-    def view(self):
+    def view(self, opt='TB'):
+        self.G.attr(rankdir=opt)
         self.G.view()
 
     def getSuffixes(self, text):
@@ -99,10 +99,10 @@ class SuffixTrie(Digraph):
         for i in range(1, len(s)+1):
             if (i == len(s) and len(s) > len_nextstr):
 #                self.G.attr('node', shape='square')
-                self.G.node(str(i), str(i), shape='square')
+                self.G.node(str(i), shape='square')
 #                self.G.attr('node', shape='circle')
             else:
-                self.G.node(str(i), str(i))
+                self.G.node(str(i))
             #
             self.nNodes += 1
             self.degree.append(0)
@@ -110,7 +110,9 @@ class SuffixTrie(Digraph):
 
         # making edges
         for i in range(len(s)):
-            self.G.edge(str(i), str(i+1), label=str(s[i]))
+#            self.G.edge(str(i), str(i+1), label=str(s[i]))
+            self.G.edge(str(i), str(i+1))
+            self.G.node(str(i+1), str(s[i]))
             self.nEdges += 1
             self.degree[i] += 1
             self.trie[i].setdefault(s[i], i+1)
@@ -123,9 +125,11 @@ class SuffixTrie(Digraph):
 #        print("nextPath: lcpv, len(s) ", lcpv, len(s))
         for i in range(lcpv, len(s)):
             if (i == len(s)-1 and len(s) != len_nextstr):
-                self.G.node(str(nextID+i-lcpv), str(nextID+i-lcpv), shape='square')
+#                self.G.node(str(nextID+i-lcpv), str(nextID+i-lcpv), shape='square')
+                self.G.node(str(nextID+i-lcpv), shape='square')
             else:
-                self.G.node(str(nextID+i-lcpv), str(nextID+i-lcpv))
+#                self.G.node(str(nextID+i-lcpv), str(nextID+i-lcpv))
+                self.G.node(str(nextID+i-lcpv))
 #        nodeID.append(nextID+i-lcpv)
             self.nNodes += 1
             self.degree.append(0)
@@ -137,7 +141,9 @@ class SuffixTrie(Digraph):
                 prev = prevPath[lcpv]
             else:
                 prev = i-1
-            self.G.edge(str(prev), str(i), label=s[i-nextID+lcpv])
+#            self.G.edge(str(prev), str(i), label=s[i-nextID+lcpv])
+            self.G.edge(str(prev), str(i))
+            self.G.node(str(i), str(s[i-nextID+lcpv]))
             self.nEdges += 1
             self.degree[prev] += 1
 #        print("prev: ", prev)
@@ -225,11 +231,19 @@ class SuffixTrie(Digraph):
     def leafQ(self, id):
          return len(self.trie[id]) == 0
 
+    def printMFW(self):
+#        for i in range(len(self._MFW)):
+#            print(self._MFW[i])
+        for i in range(len(self._MFW)):
+            print(self._MFW[i])
+
+    def save(self, opt=''):
+        self.G.render(self.text+opt)
 #
 # methods
 #
 
-def createMFW(nt, pnode, node):
+def createMFWwithBug(nt, pnode, node):
     '''
     create an MFW or MFWs to nt.
     '''
@@ -244,15 +258,50 @@ def createMFW(nt, pnode, node):
 
     for i in range(nt.aSize):
         if sym[i] not in t[node] and sym[i] in t[pnode]:
-            print("MFW: ", pathstr+ [sym[i]])
+            mfwStr = pathstr+ [sym[i]]
+#            print("MFW: ", mfwStr)
+            nt._MFW.append("".join(mfwStr))
             n += 1
+#            nt.G.edge(str(node), str(n), label=sym[i], style='bold', color='blue')
             nt.G.edge(str(node), str(n), label=sym[i], style='bold', color='blue')
+            nt.G.node(str(n),sym[i])
             t.append({})
             t[node][sym[i]] = n
             nt.parent.append(node)
 
     nt.G.attr('node', shape = 'circle')
     nt.nNodes = n
+
+def createMFW(atr, ntr, pnode, node):
+    '''
+    create an MFW or MFWs to nt.
+    '''
+    oT = atr.trie
+    pList = atr.parent
+    nT = ntr.trie
+    n = ntr.nNodes
+    sym = ntr.alph
+#     print("in createMFW, pnode: {0}\tnode: {1}".format(pnode, node))
+
+    pathstr = ntr.path(node)
+    ntr.G.attr('node', shape = 'doublecircle')
+
+    for i in range(atr.aSize):
+        # check this condition on the old trie (HM190523)
+        if sym[i] not in oT[node] and sym[i] in oT[pnode]:
+            mfwStr = pathstr+ [sym[i]]
+#            print("MFW: ", mfwStr)
+            ntr._MFW.append("".join(mfwStr))
+            n += 1
+#            ntr.G.edge(str(node), str(n), label=sym[i], style='bold', color='blue')
+            ntr.G.edge(str(node), str(n), style='bold', color='blue')
+            ntr.G.node(str(n),sym[i])
+            nT.append({})
+            nT[node][sym[i]] = n
+            ntr.parent.append(node)
+
+    ntr.G.attr('node', shape = 'circle')
+    ntr.nNodes = n
 
 def showMFWCandidates(st):
     s = copy.deepcopy(st)
@@ -275,6 +324,8 @@ def edgeQ(st, sn, en):
             break
     return flag
 
+
+
 def buildADT(st):
     nt = copy.deepcopy(st)
     t = nt.trie
@@ -293,9 +344,10 @@ def buildADT(st):
     node_p = st.locusL(pathmin)
 
 #    if (not edgeQ(nt, node_p, node_I)):
-    nt.G.edge(str(node_p), str(node_I), color = 'green')
+#   L-link
+    nt.G.edge(str(node_p), str(node_I), color = 'orange')
     nt.nEdges += 1
-    createMFW(nt, node_p, node_I)
+    createMFW(st, nt, node_p, node_I)
 
 #    print("pathForks: ", pathForks)
     pathForks = [st.path(i) for i in forks]
@@ -307,10 +359,13 @@ def buildADT(st):
             if st.locusQ(pathJ):
                 nodeJ = st.locusL(pathJ)
                 if (not st.leafQ(nodeJ)):     # to avoid to connect a node of type L (190516)
-                    nt.G.edge(str(forks[i]), str(nodeJ), color = 'green')
+# added label
+                    nt.G.edge(str(forks[i]), str(nodeJ), label=sym[j], color = 'green')
                     nt.nEdges += 1
-                    createMFW(nt, forks[i], nodeJ)
+                    createMFW(st, nt, forks[i], nodeJ)
 
+    tmp=sorted(nt._MFW)
+    nt._MFW=tmp
 
     return nt
 
@@ -332,7 +387,9 @@ def buildADT_FH(st):
                 nodeJ = nt.locusL(pathJ)
                 if st.leafQ(nodeJ):         # check if nodeJ is a leaf.
                     nt.G.node(str(nodeJ), color="green")
-                nt.G.edge(str(forks[i]), str(nodeJ), color = 'green')
+#                    nt.G.edge(str(forks[i]), str(nodeJ), color = 'orange')
+#                else:
+                nt.G.edge(str(forks[i]), str(nodeJ), label = sym[j], color = 'green')
                 nt.nEdges += 1
                 if len(nt.trie[nodeJ]) == 0:
                     flagLeaf = True
@@ -344,11 +401,12 @@ def buildADT_FH(st):
     leaves=list(filter(lambda i: len(st.trie[i]) == 0, range(len(st.trie))))
     argmin=np.argmin([len(st.path(k)) for k in leaves])
     node_I = leaves[argmin]
+    nt.G.node(str(node_I), color="green")
     pathmin = st.path(node_I)
     pathmin = pathmin[1:]
     node_p = st.locusL(pathmin)
 
-    nt.G.edge(str(node_p), str(node_I), color = 'green')
+    nt.G.edge(str(node_p), str(node_I), color = 'orange')
     nt.nEdges += 1
 #    createMFW(st, nt, node_p, node_I)
 
@@ -358,14 +416,14 @@ def buildADT_SH(at, st):
     '''
     complete AD trie from suffix trie st with MF links
     '''
- #   nt = copy.deepcopy(at)
+    nt = copy.deepcopy(st)
     t = at.trie
     parent = at.parent
     forks = at.forks
 
     # build MFWs of type L
 
-    leaves=list(filter(lambda i: len(at.trie[i]) == 0, range(len(at.trie))))
+    leaves=list(filter(lambda i: len(t[i]) == 0, range(len(t))))
     argmin=np.argmin([len(at.path(k)) for k in leaves])
     node_I = leaves[argmin]
     pathmin = at.path(node_I)
@@ -377,25 +435,35 @@ def buildADT_SH(at, st):
     if (node_I == -1):
         print("found in the process for type L")
     else:
-        createMFW(st, node_p, node_I)
+        createMFW(at, nt, node_p, node_I)
+
 
     # build MFWs of type I
     # note:  forks stores fork nodes before appending MFW nodes into st
     pathForks = [at.path(i) for i in forks]
 
-#     print("pathForks: ", pathForks)
+#    print("pathForks: ", pathForks)
 
     alph = at.alph
     for i in range(len(pathForks)):
         for j in range(len(alph)):
             pathJ = [alph[j]]+pathForks[i]
-            if at.locusQ(pathJ):
+#            if at.locusQ(pathJ):              (stopped here)
+            if st.locusQ(pathJ):
                 nodeJ = at.locusL(pathJ)
             # exception for type L
-            if (not nodeJ == -1):
-                createMFW(st, forks[i], nodeJ)
+            # bug: need one more ident
+#           if (not nodeJ == -1):
+#               createMFWtemp(at, nt, forks[i], nodeJ)
+#            bug: added one more condition
+#                if (not nodeJ == -1):
+                if (not nodeJ == -1 and not nodeJ == node_I):
+                    createMFW(at, nt, forks[i], nodeJ)
 #
-    return st
+    tmp=sorted(nt._MFW)
+    nt._MFW=tmp
+
+    return nt
 
 #
 #   added some more functions
