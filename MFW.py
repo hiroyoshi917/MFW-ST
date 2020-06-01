@@ -4,17 +4,12 @@
 #  File Name            : MFW.py
 #  Creation Date        : 2019/05/15
 #
-#
 #  Copy right 2019 Hiroyosh Morita. All rights reserved.
 #
 #  This source code or any protion thereof must not be
 #  reproduced or used in any manner whatsoever.
 #
-#  Log:
-#    2020/05/23  fixed a bug in function createMFW().
-#
-#  Released  MFW200523.py as MFW.py
-#    2020/05/30
+
 
 
 
